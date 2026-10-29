@@ -1,0 +1,23 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y g++-14 cmake
+      - run: cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-14 && cmake --build build -j
+      - run: ctest --test-dir build --output-on-failure
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install playwright && playwright install --with-deps chromium
+      - run: python3 preview/make_preview.py
+      - run: echo "PW_CHROME=$(python3 -c \"from playwright.sync_api import sync_playwright as s;p=s().start();print(p.chromium.executable_path)\")" >> $GITHUB_ENV
+      - run: |
+          for t in verify_scope verify_lens verify_cards verify_riskblocks verify_keylevels verify_sidebar verify_sidebar_xb verify_views verify_viewlayout verify_viewctl verify_volatility verify_pricing verify_chart verify_mbmodel verify_dte verify_bubbles; do
+            python3 tests/ui/$t.py | tail -1
+          done

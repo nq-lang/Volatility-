@@ -1,0 +1,28 @@
+// Chart Factors wire schema (M0 draft). flatc is NOT available in this environment; the
+// schema is the contract, a hand-written C++ encoder/decoder is only added after review (see audit §4).
+namespace cf;
+enum Metric : ubyte { NetGex, Vanna, Charm, Vomma, Vega, Color, Delta, Theta, Speed, PTouch }
+enum Verdict : ubyte { Magnet, Support, Resistance, Acceleration, Pivot, Weak }
+enum Horizon : ubyte { Intraday, Swinging }
+enum LevelKind : ubyte { Flip, CallWall, PutWall, EmUp, EmDn, Rnd, D25Put, D25Call, Set, Pdl, Onl, WOpen }
+struct Range { lo:double; hi:double; }
+table StrikeField {            // one row per strike (price already on the AXIS instrument)
+  strike_axis:double; strike_native:double; book:string;
+  metric:[float];              // indexed by Metric, signed
+  intensity:float;             // 0..1 per-metric normalised, drives gradient alpha
+  verdict:Verdict; contested:bool; valid_until_min:int; sigma_dist:float; p_touch:float;
+}
+table HeatColumns { t0_ms:long; dt_ms:int; price_lo:double; tick:double; rows:int; cols:int; bid:[ubyte]; ask:[ubyte]; available:bool; }  // GAP: needs L2
+table Level { kind:LevelKind; price:double; label:string; gex:double; books:[string]; dashed:bool; }
+table HedgeCurve { shock_pct:[float]; anchor_contracts:[double]; notional:[double]; vanna_up:double; vanna_dn:double; charm_1d:double; zero_dte_up:double; zero_dte_dn:double; }
+table Regime { gamma_sign:byte; net_gamma:double; flip:double; em_pct:float; vol_id:string; vol_level:float; vol_regime:string; session_phase:string; conf:float; }
+table Flags { kind:string; severity:ubyte; text:string; price:double; t_ms:long; }   // sweep/absorption/iceberg/cvd/em-touch
+table Bars { t_ms:[long]; o:[double]; h:[double]; l:[double]; c:[double]; v:[double]; cvd:[double]; }
+table SidebarMirror { alerts:[Flags]; read_text:string; scope_line:string; }
+table DataHealth { feed:string; ok:bool; age_ms:int; reason:string; }
+table ModelSnapshot {          // immutable; one `epoch` drives the chart AND the sections
+  epoch:ulong; as_of_ms:long; scope_mode:string; family:string; axis_symbol:string; horizon:Horizon;
+  spot:double; levels:[Level]; field:[StrikeField]; hedge:HedgeCurve; regime:Regime; heat:HeatColumns;
+  flags:[Flags]; bars:Bars; sidebar:SidebarMirror; health:[DataHealth];
+}
+root_type ModelSnapshot;

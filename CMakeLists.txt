@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.20)
+project(vol_terminal LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Wall -Wextra -Werror -UNDEBUG)  # tests rely on assert(); never compile it out
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR})
+
+# --- headless: quant core, regime model, validation suite, source probe (no external deps) ---
+enable_testing()
+foreach(t test_core test_regime test_validation test_probe test_viz test_scope test_normalize test_multibook test_hedge test_volrisk test_multibook_model test_llm test_volidx test_strike_insight test_session_track test_pricing_analysis)
+  add_executable(${t} tests/${t}.cpp)
+  target_compile_definitions(${t} PRIVATE VT_SRC_DIR="${CMAKE_SOURCE_DIR}")
+  add_test(NAME ${t} COMMAND ${t})
+endforeach()
+add_executable(vt_validate src/validation/validate_main.cpp)   # run the spec §10 gates on real exports
+
+# --- desktop shell + live probe (need webview.h vendored and your adapters) ---
+option(VT_BUILD_APP "Build the webview desktop shell and the data-source probe" OFF)
+if(VT_BUILD_APP)
+  set(VT_WEBVIEW_DIR "${CMAKE_SOURCE_DIR}/third_party/webview" CACHE PATH "directory containing webview.h")
+  set(VT_ADAPTER_DIR "${CMAKE_SOURCE_DIR}/src/adapters"       CACHE PATH "directory containing your_api_adapters.h / your_llm_client.h")
+  find_package(Threads REQUIRED)
+  add_executable(vt_app src/app/main.cpp)
+  add_executable(vt_probe src/app/probe_main.cpp)
+  foreach(app vt_app vt_probe)
+    target_include_directories(${app} PRIVATE ${VT_WEBVIEW_DIR} ${VT_ADAPTER_DIR})
+    target_link_libraries(${app} PRIVATE Threads::Threads)
+  endforeach()
+  target_compile_definitions(vt_app PRIVATE WEB_ROOT="${CMAKE_SOURCE_DIR}/web")
+  if(APPLE)
+    target_link_libraries(vt_app PRIVATE "-framework WebKit")
+  elseif(UNIX)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(WEBKIT REQUIRED webkit2gtk-4.1 gtk+-3.0)
+    target_include_directories(vt_app PRIVATE ${WEBKIT_INCLUDE_DIRS})
+    target_link_libraries(vt_app PRIVATE ${WEBKIT_LIBRARIES})
+  endif()
+endif()

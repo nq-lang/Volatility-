@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>VOLATILITY ANALYSIS</title>
+<link rel="stylesheet" href="../web/css/style.css" />
+</head>
+<body>
+    <div class="vt-header">
+        <div class="vt-title">VOLATILITY ANALYSIS</div>
+        <div class="vt-subtitle">structural options-flow terminal</div>
+        <div class="vt-tickers" id="vt-tickers" role="tablist" aria-label="Underlying"></div>
+        <div class="vt-scope"><span class="vt-scope-badge" id="vt-scope-badge" data-mode="single">SINGLE-BOOK</span><div class="vt-scope-tabs" id="vt-scope-tabs" role="tablist" hidden><button data-m="single" role="tab">Single-Book</button><button data-m="multi" role="tab">Multi-Book</button></div></div>
+        <nav class="vt-nav">
+            <button class="vt-nav-link active" data-page="vt-page-main">Volatility Analysis</button>
+            <button class="vt-nav-link" data-page="vt-page-pricing">Pricing Surfaces</button>
+            <button class="vt-nav-link" data-page="vt-page-greeks">greeksChannel</button>
+            <button class="vt-nav-link" data-page="vt-page-cf">Chart Factors</button>
+        </nav>
+    </div>
+
+    <div id="vt-alertbar" class="vt-alertbar" hidden></div>
+
+    <div class="vt-shell">
+        <div class="vt-main">
+
+            <!-- PAGE 1 -- reading order = signal first, raw data second:
+                 (1) PCA regime model (full-bleed, absolute top)
+                 (2) the two structural reads, with the dealer-flow sidebar stretched to their height
+                 (3) every distribution / risk-pricing surface, full width -->
+            <div id="vt-page-main" class="vt-page active">
+                <div id="vt-section-pca-regime">
+                    <div class="vt-section-header">
+                        <h2>PCA Regime Model</h2>
+                        <span class="vt-section-sub">structural regime classification — PCA reduces 17 standardized features to 3D for visualization; a 5-component GMM turns that into a live probability distribution across regimes, never a hard label</span>
+                    </div>
+                    <div class="vt-row-label">3D Biplot
+                        <span class="vt-badge vt-badge-log">Batch-Fit + Live Trail</span>
+                        <span class="vt-row-desc">trading-day point cloud from the last batch refit, colored by regime, with today's live session trail drawn on top</span>
+                    </div>
+                    <div id="vt-pca-biplot-wrap" class="vt-pca-biplot-wrap">
+                        <div id="vt-pca-biplot" class="vt-pca-biplot"></div>
+                        <div id="vt-pca-explained-variance" class="vt-pca-explained-variance"></div>
+                    </div>
+
+                    <div class="vt-row-label">Regime Insights
+                        <span class="vt-badge vt-badge-live"><span class="dot"></span>Live</span>
+                        <span class="vt-row-desc">current regime probability, dominant drivers, and the dual-trigger/decay-deviation transition watch</span>
+                    </div>
+                    <div id="vt-pca-insights" class="vt-pca-insights"></div>
+                </div>
+
+                <div class="vt-lead-grid vt-lead-solo">
+                    <div class="vt-lead-left">
+                        <div id="vt-section-vol-structure">
+                    <div class="vt-section-header">
+                        <h2>Vol Structure</h2>
+                        <span class="vt-section-sub">the live structural narrative — regime, dominant Greek, key levels, scenarios, generated each cycle by the four-layer confluence engine</span>
+                    </div>
+                    <div class="vt-row-label">Current Structural Read
+                        <span class="vt-badge vt-badge-live"><span class="dot"></span>Live</span>
+                        <span class="vt-row-desc">the single most-recent read — replaces in place every cycle</span>
+                    </div>
+                    <div id="vt-insight-current" class="vt-insight-feed"></div>
+
+                    <div class="vt-row-label">Structural Read Log
+                        <span class="vt-badge vt-badge-log">Session Log</span>
+                        <span class="vt-row-desc">every past read this session, newest first — for tracking how the narrative evolved</span>
+                    </div>
+                    <div id="vt-insight-log" class="vt-insight-feed"></div>
+                </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: Pricing Surfaces -- VRP and RND beside the sidebar, the delta-IV pair full width -->
+            <div id="vt-page-pricing" class="vt-page">
+                <div id="vt-section-pricing-surfaces">
+                    <div class="vt-section-header">
+                        <h2>Pricing Surfaces</h2>
+                        <span class="vt-section-sub">distribution &amp; risk-pricing surfaces, DTE-bucketed &mdash; what the market is pricing and how rich or cheap it is: VRP, RND, and the call/put-delta IV skew pair</span>
+                    </div>
+                    <div class="vt-row-label risk-pricing">Distribution &amp; Risk-Pricing Surfaces
+                        <span class="vt-badge vt-badge-live"><span class="dot"></span>Live</span>
+                    </div>
+                    <div id="vt-lens-slot-pricing"><div class="vt-lens" id="vt-lens" hidden></div></div>
+                    <section id="vt-pa" class="vt-pa" aria-label="Pricing analysis" hidden></section>
+                    <div class="vt-lead-grid">
+                        <div class="vt-lead-left"><div id="vt-col-pricing-lead" class="vt-col"></div></div>
+                        <div class="vt-lead-side" id="vt-side-slot-pricing">
+                        <div class="vt-sidebar" id="vt-sidebar">
+            <h2>Dealer Flow — what the machine is being forced to do <span class="vt-badge vt-badge-live"><span class="dot"></span>Live</span></h2>
+            <div id="vt-sidebar-xb" class="vt-sidebar-xb"></div>
+            <div class="vt-xb-legacy-title">Primary book detail</div>
+            <div id="vt-sidebar-body"></div>
+        </div>
+                    </div>
+                    </div>
+                    <div id="vt-col-pricing" class="vt-col"></div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: greeksChannel -- sidebar beside the first two models, the rest full width -->
+            <div id="vt-page-greeks" class="vt-page">
+                <div id="vt-section-greeks-channel">
+                    <div class="vt-section-header">
+                        <h2>greeksChannel</h2>
+                        <span class="vt-section-sub">every dealer-exposure Greek surface &mdash; GEX, DEX, Vanna, Charm, Speed, Color, Theta &mdash; stacked vertically, each with its 3D surface and per-expiry 2D cross-sections side by side</span>
+                    </div>
+                    <div class="vt-row-label greeks">Greek Exposure Surfaces
+                        <span class="vt-badge vt-badge-live"><span class="dot"></span>Live</span>
+                        <span class="vt-row-desc">dealer hedging pressure by strike &mdash; green = supportive/dampening, red = amplifying.</span>
+                    </div>
+                    <div class="vt-lead-grid">
+                        <div class="vt-lead-left"><div id="vt-col-greeks-lead" class="vt-col"></div></div>
+                        <div class="vt-lead-side" id="vt-side-slot-greeks"></div>
+                    </div>
+                    <div id="vt-col-greeks" class="vt-col"></div>
+                </div>
+            </div>
+
+            <!-- PAGE 4: Chart Factors -- chart on top (sidebar beside it, unchanged), then Strike Insights / Strike Lens / Hedge Flow stacked full width -->
+            <div id="vt-page-cf" class="vt-page">
+                <div id="vt-section-cf">
+                    <div class="vt-section-header">
+                        <h2>Chart Factors</h2>
+                        <span class="vt-section-sub">every strike, level, hedge flow and regime the models report, drawn on one price axis &mdash; the chart and the three sections below always show the same model epoch</span>
+                    </div>
+                    <div class="vt-lead-grid">
+                        <div class="vt-lead-left"><section id="vt-cf" class="vt-cf" aria-label="Chart Factors chart"></section></div>
+                        <div class="vt-lead-side" id="vt-side-slot-cf"></div>
+                    </div>
+                    <div id="vt-lens-slot-cf"></div>
+                </div>
+            </div>
+            <section id="vt-vol" class="vt-vol" aria-label="Volatility" hidden></section>
+        </div>
+    </div>
+
+    <script src="../web/js/registry_data.js"></script>
+    <script src="../web/js/scope_ui.js"></script>
+    <script src="../web/js/vt3d.js"></script>
+    <script src="../web/js/surface_renderer.js"></script>
+    <script src="../web/js/pca_views.js"></script>
+    <script src="../web/js/pca_biplot.js"></script>
+    <script src="../web/js/strike_lens.js"></script>
+    <script src="../web/js/model_card.js"></script>
+    <script src="../web/js/pricing_analysis.js"></script>
+    <script src="../web/js/chartfactors/cf_mock.js"></script>
+    <script src="../web/js/chartfactors/cf_chart.js"></script>
+    <script src="../web/js/volatility.js"></script>
+    <script src="../web/js/sidebar_xbook.js"></script>
+    <script src="../web/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Chart Factors — Protocol (M0)
+**Messages.** Server→client: `snapshot` (full `ModelSnapshot`, keyed by `epoch`), `delta` (levels/field/flags changed since `epoch`), `tick` (price/bars, ≤ 20 Hz, coalesced), `health`. Client→server: `select` (`BookSelection`), `horizon`, `resync(epoch)`.
+**Ordering/consistency.** Every section (Strike Insights, Strike Lens, Hedge Flow, sidebar) and the chart read the *same* `ModelSnapshot.epoch`; a view never mixes epochs. A tick may move the price line but never edits model numbers.
+**Transport.** Existing webview JSON bridge (`window.onX` / `bridge::publish`) carries JSON now; `ModelSnapshot` is the wire contract. FlatBuffers binary is blocked by missing `flatc` (conflict C2) — M1 ships a JSON mirror of the identical schema, binary swapped in once a compiler is available.
+**Selection.** `BookSelection{mode: single|multi_book|family, ids[], family, model_variant}` is the one store; chart, Strike Insights, Strike Lens, Hedge Flow, sidebar subscribe to it (no per-section copies).
+**Coordinates.** `ViewTransform{t0,t1,p0,p1,px_w,px_h}`; `AxisMapper` converts book strike→axis price with the existing Strike Lens `K_F = K*ratio+basis`, tick-rounded; strike bands are centred on that exact price.
+**Theme tokens.** Reuse the terminal CSS variables: `--bg`, `--panel`, `--line`, `--text`, `--dim`, `--c` (ticker accent), `--up`/`--dn`; warm resistance = `--warn/--amber`, support = `--up` green; no blue/cyan fields.

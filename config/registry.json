@@ -1,0 +1,791 @@
+{
+  "version": 1,
+  "comment": "Single source of truth for ticker families, priorities, multipliers and weights. No vendor symbol is hard-coded in logic: vendor_symbol is null until verified against the data vendor's symbol master.",
+  "weighting": {
+    "mode": "priority_x_liquidity",
+    "prior_decay": 0.75,
+    "modes_allowed": [
+      "priority_only",
+      "priority_x_liquidity"
+    ]
+  },
+  "aliases": {
+    "SL": "SI",
+    "B/LCO": "B_LCO",
+    "B": "B_LCO",
+    "TQQQ": "TQQQ_SQQQ",
+    "SQQQ": "TQQQ_SQQQ",
+    "UPRO": "UPRO_SPXU",
+    "SPXU": "UPRO_SPXU",
+    "UCO": "UCO_SCO",
+    "SCO": "UCO_SCO",
+    "AGQ": "AGQ_ZSL",
+    "ZSL": "AGQ_ZSL"
+  },
+  "futures_tickers": [
+    "NQ",
+    "ES",
+    "GC",
+    "CL",
+    "SI",
+    "YM"
+  ],
+  "standard_tickers": [
+    "SPX",
+    "SPY",
+    "NDX",
+    "QQQ",
+    "NVDA",
+    "AAPL",
+    "MSFT",
+    "OG",
+    "GLD",
+    "DIA",
+    "DJX",
+    "LO",
+    "B_LCO"
+  ],
+  "display": {
+    "B_LCO": "B/LCO",
+    "TQQQ_SQQQ": "TQQQ/SQQQ",
+    "UPRO_SPXU": "UPRO/SPXU",
+    "UCO_SCO": "UCO/SCO",
+    "AGQ_ZSL": "AGQ/ZSL"
+  },
+  "symbol_master": {
+    "NQ": {
+      "kind": "future",
+      "underlying": "Nasdaq-100",
+      "multiplier": 20,
+      "currency": "USD",
+      "venue": "CME",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "ES": {
+      "kind": "future",
+      "underlying": "S&P 500",
+      "multiplier": 50,
+      "currency": "USD",
+      "venue": "CME",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "YM": {
+      "kind": "future",
+      "underlying": "Dow Jones Industrial Average",
+      "multiplier": 5,
+      "currency": "USD",
+      "venue": "CBOT",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "GC": {
+      "kind": "future",
+      "underlying": "Gold",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": "COMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "CL": {
+      "kind": "future",
+      "underlying": "WTI crude",
+      "multiplier": 1000,
+      "currency": "USD",
+      "venue": "NYMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SI": {
+      "kind": "future",
+      "underlying": "Silver",
+      "multiplier": 5000,
+      "currency": "USD",
+      "venue": "COMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "QQQ": {
+      "kind": "etf_options",
+      "underlying": "QQQ",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "NDX": {
+      "kind": "index_options",
+      "underlying": "Nasdaq-100 index",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SPX": {
+      "kind": "index_options",
+      "underlying": "S&P 500 index",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": "CBOE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SPY": {
+      "kind": "etf_options",
+      "underlying": "SPY",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "XSP": {
+      "kind": "index_options",
+      "underlying": "Mini-SPX (SPX/10)",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": "CBOE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "NVDA": {
+      "kind": "equity_options",
+      "underlying": "NVDA",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "AAPL": {
+      "kind": "equity_options",
+      "underlying": "AAPL",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "MSFT": {
+      "kind": "equity_options",
+      "underlying": "MSFT",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "UNH": {
+      "kind": "equity_options",
+      "underlying": "UNH",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "GS": {
+      "kind": "equity_options",
+      "underlying": "GS",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "HD": {
+      "kind": "equity_options",
+      "underlying": "HD",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "TQQQ_SQQQ": {
+      "kind": "leveraged_etf_options",
+      "underlying": "TQQQ / SQQQ",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "UPRO_SPXU": {
+      "kind": "leveraged_etf_options",
+      "underlying": "UPRO / SPXU",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "VX": {
+      "kind": "vol_futures",
+      "underlying": "VIX futures",
+      "multiplier": 1000,
+      "currency": "USD",
+      "venue": "CFE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "OG": {
+      "kind": "futures_options",
+      "underlying": "GC",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": "COMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "GLD": {
+      "kind": "etf_options",
+      "underlying": "GLD",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "GDX": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "GDX",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "IAU": {
+      "kind": "etf_options",
+      "underlying": "IAU",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "GDXJ": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "GDXJ",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "DIA": {
+      "kind": "etf_options",
+      "underlying": "DIA",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "DJX": {
+      "kind": "index_options",
+      "underlying": "DJIA / 100",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": "CBOE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "OZA": {
+      "kind": "futures_options",
+      "underlying": "YM (unconfirmed root)",
+      "multiplier": null,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "LO": {
+      "kind": "futures_options",
+      "underlying": "CL",
+      "multiplier": 1000,
+      "currency": "USD",
+      "venue": "NYMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "USO": {
+      "kind": "etf_options",
+      "underlying": "USO",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "B_LCO": {
+      "kind": "futures_options",
+      "underlying": "Brent",
+      "multiplier": 1000,
+      "currency": "USD",
+      "venue": "ICE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "XLE": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "XLE",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "XOP": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "XOP",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "UCO_SCO": {
+      "kind": "leveraged_etf_options",
+      "underlying": "UCO / SCO",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SO": {
+      "kind": "futures_options",
+      "underlying": "SI",
+      "multiplier": 5000,
+      "currency": "USD",
+      "venue": "COMEX",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SLV": {
+      "kind": "etf_options",
+      "underlying": "SLV",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SIL": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "SIL",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "SILJ": {
+      "kind": "etf_options",
+      "level": "none",
+      "underlying": "SILJ",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "PSLV": {
+      "kind": "etf_options",
+      "underlying": "PSLV",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "AGQ_ZSL": {
+      "kind": "leveraged_etf_options",
+      "underlying": "AGQ / ZSL",
+      "multiplier": 100,
+      "currency": "USD",
+      "venue": null,
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "VIX": {
+      "kind": "vol_index",
+      "underlying": "CBOE Volatility Index (S&P 500, 30d implied vol)",
+      "multiplier": 0,
+      "currency": "USD",
+      "venue": "CBOE",
+      "vendor_symbol": null,
+      "verified": false
+    },
+    "VXN": {
+      "kind": "vol_index",
+      "underlying": "CBOE Nasdaq-100 Volatility Index (30d implied vol)",
+      "multiplier": 0,
+      "currency": "USD",
+      "venue": "CBOE",
+      "vendor_symbol": null,
+      "verified": false
+    }
+  },
+  "leverage": {
+    "TQQQ_SQQQ": [
+      3,
+      -3
+    ],
+    "UPRO_SPXU": [
+      3,
+      -3
+    ],
+    "UCO_SCO": [
+      2,
+      -2
+    ],
+    "AGQ_ZSL": [
+      2,
+      -2
+    ]
+  },
+  "level_map": {
+    "comment": "How a book's price space maps to the anchor. Ratios drift (fees, dividends, rebalances), so the live ratio S_anchor/S_book is used; nominal is only for sanity checks.",
+    "SPY": {
+      "kind": "etf_ratio",
+      "nominal": 0.1
+    },
+    "XSP": {
+      "kind": "index_ratio",
+      "nominal": 10
+    },
+    "DIA": {
+      "kind": "etf_ratio",
+      "nominal": 0.01
+    },
+    "DJX": {
+      "kind": "index_ratio",
+      "nominal": 100
+    },
+    "QQQ": {
+      "kind": "etf_ratio",
+      "nominal": null
+    },
+    "GLD": {
+      "kind": "etf_ratio",
+      "nominal": null
+    }
+  },
+  "families": {
+    "NQ": {
+      "enabled": true,
+      "anchor": {
+        "id": "NQ"
+      },
+      "cash_ref": "NDX",
+      "cash_scale": 1,
+      "tick": 0.25,
+      "books": [
+        {
+          "id": "QQQ",
+          "priority": 1
+        },
+        {
+          "id": "NDX",
+          "priority": 2
+        },
+        {
+          "id": "NVDA",
+          "priority": 3
+        },
+        {
+          "id": "AAPL",
+          "priority": 4
+        },
+        {
+          "id": "MSFT",
+          "priority": 5
+        },
+        {
+          "id": "TQQQ_SQQQ",
+          "priority": 6,
+          "assumed": "user listed TQQQ/SQQQ without a number; assumed #6. Confirm."
+        },
+        {
+          "id": "VX",
+          "priority": 7,
+          "assumed": "user listed VIX futures without a number; assumed #7. Confirm."
+        }
+      ]
+    },
+    "ES": {
+      "enabled": true,
+      "anchor": {
+        "id": "ES"
+      },
+      "cash_ref": "SPX",
+      "cash_scale": 1,
+      "tick": 0.25,
+      "books": [
+        {
+          "id": "SPX",
+          "priority": 1
+        },
+        {
+          "id": "SPY",
+          "priority": 2
+        },
+        {
+          "id": "NVDA",
+          "priority": 3
+        },
+        {
+          "id": "AAPL",
+          "priority": 4
+        },
+        {
+          "id": "MSFT",
+          "priority": 5
+        },
+        {
+          "id": "XSP",
+          "priority": 6
+        },
+        {
+          "id": "UPRO_SPXU",
+          "priority": 7,
+          "assumed": "user wrote 'PRO / SPXU'; read as UPRO / SPXU (ProShares UltraPro S&P 500 / UltraPro Short S&P 500). Confirm."
+        }
+      ]
+    },
+    "GC": {
+      "enabled": true,
+      "note": "Re-enabled by the user on 2026-10-18, overriding the earlier remove-gold instruction. Gold keeps its own family and its own fitted model (never shared with ES/NQ).",
+      "anchor": {
+        "id": "GC"
+      },
+      "cash_ref": null,
+      "cash_scale": 1,
+      "tick": 0.1,
+      "books": [
+        {
+          "id": "OG",
+          "priority": 1
+        },
+        {
+          "id": "GLD",
+          "priority": 2
+        },
+        {
+          "id": "GDX",
+          "priority": 3
+        },
+        {
+          "id": "IAU",
+          "priority": 4
+        },
+        {
+          "id": "GDXJ",
+          "priority": 5
+        }
+      ]
+    },
+    "YM": {
+      "enabled": true,
+      "anchor": {
+        "id": "YM"
+      },
+      "cash_ref": "DJX",
+      "cash_scale": 100,
+      "tick": 1.0,
+      "books": [
+        {
+          "id": "DIA",
+          "priority": 1
+        },
+        {
+          "id": "DJX",
+          "priority": 2
+        },
+        {
+          "id": "OZA",
+          "priority": 3,
+          "needs_verification": "OZA is not a confirmed vendor root for Dow options on futures. Verify against the symbol master; the book stays unresolved and is excluded until verified."
+        },
+        {
+          "id": "UNH",
+          "priority": 4
+        },
+        {
+          "id": "GS",
+          "priority": 5
+        },
+        {
+          "id": "MSFT",
+          "priority": 6
+        },
+        {
+          "id": "HD",
+          "priority": 7
+        }
+      ]
+    },
+    "CL": {
+      "enabled": true,
+      "anchor": {
+        "id": "CL"
+      },
+      "cash_ref": null,
+      "cash_scale": 1,
+      "tick": 0.01,
+      "books": [
+        {
+          "id": "LO",
+          "priority": 1
+        },
+        {
+          "id": "USO",
+          "priority": 2
+        },
+        {
+          "id": "B_LCO",
+          "priority": 3,
+          "needs_verification": "Brent options roots and expiry conventions differ by venue and vendor."
+        },
+        {
+          "id": "XLE",
+          "priority": 4
+        },
+        {
+          "id": "XOP",
+          "priority": 5
+        },
+        {
+          "id": "UCO_SCO",
+          "priority": 6
+        }
+      ]
+    },
+    "SI": {
+      "enabled": true,
+      "anchor": {
+        "id": "SI"
+      },
+      "cash_ref": null,
+      "cash_scale": 1,
+      "tick": 0.005,
+      "books": [
+        {
+          "id": "SO",
+          "priority": 1,
+          "needs_verification": "SO = COMEX silver options root, SI = silver futures root. Confirm the vendor mapping."
+        },
+        {
+          "id": "SLV",
+          "priority": 2
+        },
+        {
+          "id": "SIL",
+          "priority": 3
+        },
+        {
+          "id": "SILJ",
+          "priority": 4,
+          "needs_verification": "Resolve by symbol, not by fund name (sponsors and names change)."
+        },
+        {
+          "id": "PSLV",
+          "priority": 5
+        },
+        {
+          "id": "AGQ_ZSL",
+          "priority": 6
+        }
+      ]
+    }
+  },
+  "ambiguities": [
+    {
+      "item": "SL vs SI for silver futures",
+      "resolution": "SI is canonical, SL is an alias.",
+      "status": "assumed"
+    },
+    {
+      "item": "SO / SI options",
+      "resolution": "SO = silver options, SI = silver futures.",
+      "status": "assumed"
+    },
+    {
+      "item": "PRO / SPXU",
+      "resolution": "Read as UPRO / SPXU.",
+      "status": "assumed"
+    },
+    {
+      "item": "OZA",
+      "resolution": "Unresolved. Book excluded until verified.",
+      "status": "open"
+    },
+    {
+      "item": "B / LCO",
+      "resolution": "Mapped to id B_LCO; vendor root and expiry convention unverified.",
+      "status": "open"
+    },
+    {
+      "item": "OG / LO / SO as tickers",
+      "resolution": "Treated as option-book identifiers that resolve to an underlying future and its chain.",
+      "status": "assumed"
+    },
+    {
+      "item": "SILJ naming",
+      "resolution": "Resolved by symbol only.",
+      "status": "assumed"
+    },
+    {
+      "item": "Dow price weights",
+      "resolution": "User order kept as default; runtime check against live index weights warns if a top-weight name is missing.",
+      "status": "assumed"
+    },
+    {
+      "item": "NQ #6 and #7",
+      "resolution": "TQQQ/SQQQ = 6, VIX futures = 7.",
+      "status": "assumed"
+    },
+    {
+      "item": "GC family",
+      "resolution": "Enabled by the user (2026-10-18), overriding the earlier remove-gold instruction.",
+      "status": "resolved"
+    }
+  ],
+  "volatility_tickers": [
+    "VIX",
+    "VXN"
+  ],
+  "vol_links": {
+    "VIX": {
+      "measures": "S&P 500 30-day implied vol",
+      "books": [
+        "SPX",
+        "SPY",
+        "XSP",
+        "ES"
+      ],
+      "anchor": "ES"
+    },
+    "VXN": {
+      "measures": "Nasdaq-100 30-day implied vol",
+      "books": [
+        "QQQ",
+        "NDX",
+        "NQ"
+      ],
+      "anchor": "NQ"
+    }
+  }
+}
