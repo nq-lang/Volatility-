@@ -359,3 +359,8 @@ T2-5 hedging, T2-6 vol/risk, T2-7 multibook_v1, T2-8 scoped LLM layer, cross-boo
 - Heatmap restyled to the owner's directives + `dealer_flow_heatmap_dynamics_spec.md`: yellow (positive) / purple (negative) OKLab LUT ramps, hard-edged rows with 1 px gap, now line at 82%, future zone = live state projected flat, step price line, red/green dashed bid/ask markers, settings panel, fixed/adaptive/absolute scale, lock, bands, brightness.
 - Backend: composite `struct` metric (dealer flow x touch prob x RND density, vol-adaptive spread via `vol_k`), per-level `pill` (asset + strike), `outcome` / `why` (MAGNET / PINNING / REJECTION / AMPLIFIER).
 - See `docs/heatmap-spec-audit.md` for the audit and gaps.
+
+## 2026-10-29 (colour overhaul)
+- Heat ramp replaced by the single navy -> royal blue -> dark gold -> light yellow -> bright yellow -> red ramp; navy base `#0B132B`; contrast-aware halos/plates/outlines on tags, chips and pills; legend shows the ramp.
+- Fixtures added for YM, CL, SI (all six tickers NQ ES GC CL SI YM tested in `verify_chart`); redraw benchmark (steady ~4 ms, texture rebuild ~8 ms headless at 1x).
+- Mock data documented in `docs/mock-data.md`.

@@ -23,7 +23,9 @@ static volidx::Analysis synth_vol(const std::string& id, double base, double bum
 int main(int, char** argv) {
     auto r = reg::load(std::string(VT_SRC_DIR) + "/config/registry.json"); Fake f;
     f.spot = {{"ES", 6012.5}, {"SPX", 6000}, {"SPY", 599.4}, {"XSP", 600.0}, {"NVDA", 130}, {"AAPL", 230}, {"MSFT", 420}, {"UPRO_SPXU", 90},
-              {"NQ", 21850.25}, {"NDX", 21800}, {"QQQ", 520.1}, {"TQQQ_SQQQ", 75}, {"VX", 17.2}, {"GC", 2712.4}, {"OG", 2705.0}, {"GLD", 250.3}, {"GDX", 45}, {"IAU", 51}, {"GDXJ", 40}};
+              {"NQ", 21850.25}, {"NDX", 21800}, {"QQQ", 520.1}, {"TQQQ_SQQQ", 75}, {"VX", 17.2}, {"GC", 2712.4}, {"OG", 2705.0}, {"GLD", 250.3}, {"GDX", 45}, {"IAU", 51}, {"GDXJ", 40},
+              {"YM", 43500.0}, {"DIA", 435.0}, {"DJX", 435.0}, {"OZA", 435.0}, {"UNH", 520}, {"GS", 600}, {"HD", 400}, {"CL", 70.5}, {"LO", 70.4}, {"USO", 72.0}, {"B_LCO", 74.0}, {"XLE", 90}, {"XOP", 130}, {"UCO_SCO", 25},
+              {"SI", 31.5}, {"SO", 31.4}, {"SLV", 29.4}, {"SIL", 40}, {"SILJ", 15}, {"PSLV", 11}, {"AGQ_ZSL", 30}};
     std::ofstream o(argv[1]); o << "{";
     std::map<std::string, volidx::Analysis> an{{"VIX", synth_vol("VIX", 17, 3.5)}, {"VXN", synth_vol("VXN", 21, 6.0)}};
     auto emit = [&](const char* key, const std::string& t, scope::Mode m, const std::string& fam, std::set<std::string> down, bool withvol = true) {
@@ -32,5 +34,8 @@ int main(int, char** argv) {
     emit("ES_multi_SPX", "SPX", scope::Mode::MultiBook, "ES", {}); o << ",";
     emit("NQ_family", "NQ", scope::Mode::Family, "", {}); o << ",";
     emit("ES_multi_SPX_degraded", "SPX", scope::Mode::MultiBook, "ES", {"SPY", "XSP"}); o << ",";
-    emit("GC_family", "GC", scope::Mode::Family, "", {}, false); o << "}"; return 0;
+    emit("GC_family", "GC", scope::Mode::Family, "", {}, false); o << ",";
+    emit("YM_family", "YM", scope::Mode::Family, "", {}); o << ",";
+    emit("CL_family", "CL", scope::Mode::Family, "", {}, false); o << ",";
+    emit("SI_family", "SI", scope::Mode::Family, "", {}, false); o << "}"; return 0;
 }

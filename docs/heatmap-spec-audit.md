@@ -6,7 +6,8 @@ Where the spec and the owner's later written directives disagree, the owner's di
 ## Owner directives applied (override the spec)
 | Directive | Implementation |
 |---|---|
-| Positive = yellow, negative = purple (not only two flat colours) | Two 7-stop ramps (dark -> amber/gold/yellow/pale-yellow; dark -> indigo/violet/lilac/pale-lavender), OKLab-interpolated, 1024-entry LUT per sign. The spec's blue->red ramp is not used. |
+| Single non-linear ramp (supersedes the earlier yellow/purple scheme) | Midnight navy `#0B132B` -> deep navy -> royal blue -> dark gold -> vivid light yellow -> bright yellow -> saturated red `#FF1E1E` (top ~3% only: gamma walls / pins), OKLab-interpolated, 1024-entry LUT, no banding (max channel step < 14 across the LUT). Positive and negative exposure share the ramp by magnitude (symmetric); `negWeight` setting gives distinct weights; sign is carried by tags, pills, chips and the hover readout. |
+| Dynamic text contrast | Dark halo on every overlay text, dark plate + outer outline on chips and pills, luminance of the heat under each level (`heatLum`) selects plate opacity / halo strength; chips keep their price alignment and hover highlight. |
 | Same data = same colour on every update; forward region keeps intensity; only the past is dimmer | Default scale mode `fixed` (one H per metric, running max of the model p98, never decreases within a scope). Past fade is a setting (`fade`, default 0.5; 0 = none, the spec's no-fade); the projection right of "now" is never dimmed. |
 | Heatmap = all three models + sidebar structure, not only GEX | Metric selector: Structural (default), Net GEX, Vanna, Charm, Vomma, Vega, Delta hedge, Touch prob, Open int., Hedge $/1%. |
 | "Liquidity" = dealer flow, risk/distribution pricing, vol-adaptive, probabilistic | `struct` metric (C++): dealer GEX x (0.5 + 0.5 x risk-neutral touch chance) x (0.6 + 0.4 x RND density); row spread widened by `field.vol_k` (0.8..1.4 from the VIX/VXN percentile). Updates every epoch. |
@@ -16,7 +17,7 @@ Where the spec and the owner's later written directives disagree, the owner's di
 ## Section audit (visual impact order)
 | § | Item | Status | Note |
 |---|---|---|---|
-| 4.2-4.4 | Colour pipeline t, t^gamma, soft alpha, LUT | Match | gamma 0.7, noise 5% of H, bands, brightness are settings |
+| 4.2-4.4 | Colour pipeline (ramp per directive above) t, t^gamma, soft alpha, LUT | Match | gamma 0.7, noise 5% of H, bands, brightness are settings |
 | 4.3 | OKLab LUT 1024 | Match | luminance-profile / colour-vision simulation not run |
 | 4.5 | Adaptive H (p99.5), asymmetric EMA 1 s / 8 s, hysteresis 2%, crossfade >15% | Match (option) | not the default, see directives |
 | 4.5 | Reference windows rolling / session | Missing | visible window only |

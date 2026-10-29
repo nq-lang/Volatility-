@@ -41,8 +41,12 @@ with sync_playwright() as p:
             for(const price of [sp,sp+half*0.33,sp-half*0.51]){c.field.metrics=[{id:'gex',hz:'intraday',scale:1,strikes:[{price,v:1}]}];const v=VT_CF.rowVals(c,g,'gex');let ai=0;for(let i=0;i<v.length;i++)if(v[i]>v[ai])ai=i;out.push(Math.abs(ai-g.rowOf(price)));}c.field.metrics=old;}
             VT_CF.state.view=null;VT_CF.draw();return out;}""")
         chk(all(e <= 0 for e in res), f"peak heat row == strike row: {res}")
-        col = pg.evaluate("()=>{const a=VT_CF.rgbFor(5e8,1e9),b=VT_CF.rgbFor(5e8,1e9),n=VT_CF.rgbFor(-5e8,1e9),h=VT_CF.rgbFor(9e8,1e9),z=VT_CF.rgbFor(1e6,1e9);return [JSON.stringify(a)==JSON.stringify(b),n[2]>n[1]&&n[0]>n[1]*0.9,a[0]>a[2]&&a[1]>a[2],h[0]+h[1]+h[2]>a[0]+a[1]+a[2],z[3]===0]}")
-        chk(col == [True, True, True, True, True], f"colour = pure function of value/H; positive yellow family, negative purple family, brighter when stronger, below noise floor invisible: {col}")
+        ramp = pg.evaluate("""()=>{const L=VT_CF.LUT.pos,at=t=>{const i=Math.round(t*1023)*3;return [L[i],L[i+1],L[i+2]]};const n0=at(0),n1=at(.10),rb=at(.28),dg=at(.46),ly=at(.60),by=at(.78),rd=at(1),nr=at(.90);
+            const sym=JSON.stringify(VT_CF.rgbFor(5e8,1e9))===JSON.stringify(VT_CF.rgbFor(-5e8,1e9));
+            let mono=true,prevL=-1;const lum=[];for(let k=0;k<=60;k++){const q=at(k/60);lum.push(.2126*q[0]+.7152*q[1]+.0722*q[2]);}
+            let maxJump=0;for(let k=1;k<=1023;k++){const a=at((k-1)/1023),b=at(k/1023);maxJump=Math.max(maxJump,Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]));}
+            return {navy:Math.abs(n0[0]-11)<3&&Math.abs(n0[1]-19)<3&&Math.abs(n0[2]-43)<3,deep:n1[2]>n1[0]*2&&n1[2]<110,royal:rb[2]>rb[0]*2&&rb[2]>rb[1]*1.5&&rb[2]>150,gold:dg[0]>130&&dg[1]>100&&dg[2]<60&&dg[0]<200,light:ly[0]>230&&ly[1]>210,bright:by[0]>240&&by[1]>200&&by[2]<40,red:Math.abs(rd[0]-255)<3&&Math.abs(rd[1]-30)<3&&Math.abs(rd[2]-30)<3,redReserved:nr[1]>150,sym,smooth:maxJump<14,floor:VT_CF.rgbFor(1e6,1e9)[3]===0}}""")
+        chk(all(ramp.values()), f"ramp navy->royal->dark gold->light yellow->bright yellow->red, symmetric, no banding, noise floor invisible: {ramp}")
         er = pg.evaluate("()=>[VT_CF.eref('gex'),VT_CF.eref('vanna'),VT_CF.eref('hedge')]"); chk(all(e > 0 for e in er), f"fixed E_ref per metric {er}")
         er2 = pg.evaluate("()=>{const S=VT_CF.state;const c0=S.hist.length;const a=VT_CF.eref('gex');S.view=null;VT_CF.draw();return [a,VT_CF.eref('gex')]}"); chk(er2[0] == er2[1], "E_ref unchanged by redraw / pan")
         # every metric selectable must render rows (all three models drive the heatmap)
@@ -97,6 +101,17 @@ with sync_playwright() as p:
         pg.click('.vt-lens-hz button[data-hz="intraday"]'); pg.wait_for_timeout(150)
         # --- single-book: chart explains, sections hidden
         pg.evaluate("window.VT_SCOPE.apply('SPX','single')"); pg.wait_for_timeout(250); chk("Multi-Book / Family" in pg.inner_text("#vt-cf") or pg.evaluate("document.getElementById('vt-lens').hidden"), "single-book handled")
+        # --- all active tickers: NQ ES GC CL SI YM render, with asset+strike pills, outcome chips, contrast helper, 19 px chips, no errors
+        for key, sym in [("NQ_family", "NQ"), ("ES_multi_SPX", None), ("GC_family", "GC"), ("CL_family", "CL"), ("SI_family", "SI"), ("YM_family", "YM")]:
+            push(pg, key); pg.click('[data-page="vt-page-cf"]'); pg.wait_for_timeout(450)
+            r = pg.evaluate("""()=>{VT_CF.state.view=null;VT_CF.draw();const S=VT_CF.state,c=VT_CF.cur();const lv=VT_CF.levelsPx();const lum=lv.map(l=>VT_CF.heatLum(l.price));const sp=(S.chips||[]).map(x=>x.ly).sort((a,b)=>a-b);
+                let gap=1e9;for(let i=1;i<sp.length;i++)gap=Math.min(gap,sp[i]-sp[i-1]);return {ok:c.ok,sym:c.axis.symbol,n:lv.length,chips:(S.chips||[]).length,gap,lumOk:lum.every(x=>x>=0&&x<=1),pills:VT_CF.labels().map(l=>l.text),metrics:c.field.metrics.length,shown:S.shownEpoch===c.epoch}}""")
+            chk(r["ok"] and r["n"] >= 3 and r["chips"] >= 2 and r["gap"] >= 18.99 and r["lumOk"] and r["metrics"] > 0 and r["shown"], f"{key}: {r}")
+            if sym: chk(r["sym"] == sym, f"{key} axis symbol {r['sym']}")
+            chk(all((" \u2013 " in t) or t.startswith(r["sym"] + " $") for t in r["pills"]), f"{key} pills carry asset+strike: {r['pills'][:2]}")
+        # --- performance: steady-state redraw and worst case (texture rebuilt every frame)
+        pf = pg.evaluate("""()=>{const S=VT_CF.state;S.view=null;VT_CF.draw();const run=(n,reset)=>{const t0=performance.now();for(let i=0;i<n;i++){if(reset)S.texKey='';VT_CF.draw();}return (performance.now()-t0)/n};return {steady:run(40,false),rebuild:run(15,true)}}""")
+        chk(pf["steady"] < 16.0, f"steady redraw {pf['steady']:.1f} ms"); chk(pf["rebuild"] < 50.0, f"worst-case redraw (texture rebuild) {pf['rebuild']:.1f} ms"); print(f"perf {vp}: steady {pf['steady']:.1f} ms, rebuild {pf['rebuild']:.1f} ms")
         # --- other scopes render without errors
         for key in ["ES_multi_SPX", "GC_family", "ES_multi_SPX_degraded"]:
             push(pg, key); pg.click('[data-page="vt-page-cf"]'); pg.wait_for_timeout(350); chk(pg.is_visible("#vt-cf-cv"), f"{key} chart")
