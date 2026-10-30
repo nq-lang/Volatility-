@@ -364,3 +364,9 @@ T2-5 hedging, T2-6 vol/risk, T2-7 multibook_v1, T2-8 scoped LLM layer, cross-boo
 - Heat ramp replaced by the single navy -> royal blue -> dark gold -> light yellow -> bright yellow -> red ramp; navy base `#0B132B`; contrast-aware halos/plates/outlines on tags, chips and pills; legend shows the ramp.
 - Fixtures added for YM, CL, SI (all six tickers NQ ES GC CL SI YM tested in `verify_chart`); redraw benchmark (steady ~4 ms, texture rebuild ~8 ms headless at 1x).
 - Mock data documented in `docs/mock-data.md`.
+
+## 2026-10-30 (dynamics + leftovers)
+- Fixed: all fixture history epochs shared one id (client collapsed them). Epoch now = fnv(scope key | snapshot time). NQ mock = 20 states, 2 min apart, moving price and vol.
+- Renderer: interpolation between model states, live easing, view recentre easing, gap handling, 720-state ring buffer, backfill setting; example candles bridged through each state's price.
+- Tests: dynamics + golden replay checksums (`tests/golden/`), six-ticker render, benchmark. `tests/ui/make_heatmap_gif.py` renders the replay GIF.
+- Waiting on you: VIX/VXN history data, order-flow API (real tape / L2 / bid-ask), LLM client + adapters + webview wiring.

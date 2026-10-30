@@ -7,7 +7,7 @@
 // EXAMPLE layers (bars, volume, CVD, forensics, blocks, bid/ask, session levels, L2 streaks) use cf_mock.js until the order-flow API exists.
 (function () {
     const C = { warm: '#ffb02e', rev: '#ffd84a', put: '#3fd8f0', flip: '#9fb4ff', hvl: '#8dffb4', up: '#3ef0c0', dn: '#ff5370', em: '#7fd4ff' };
-    const DEF = { bucket: 0, eref: 'backend', scale: 'fixed', pHigh: 99.5, gamma: 0.7, noise: 0.03, lock: false, bands: 0, bright: 1, negWeight: 1, fade: 0.5, rowPx: 9, nowPct: 0.82, rise: 1, decay: 8, absH: 0, npiv: 8, font: 11, style: 'rows' };
+    const DEF = { bucket: 0, eref: 'backend', scale: 'fixed', pHigh: 99.5, gamma: 0.7, noise: 0.03, lock: false, bands: 0, bright: 1, negWeight: 1, blend: 'smooth', gapMin: 15, backfill: 'carry', fade: 0.5, rowPx: 9, nowPct: 0.82, rise: 1, decay: 8, absH: 0, npiv: 8, font: 11, style: 'rows' };
     const S = { chart: null, hist: [], lensEp: null, mbEp: null, mock: null, stale: false, layers: { heat: true, piv: true, mag: true, can: true, pl: true, blk: true, ref: true, flags: true, l2: false }, set: Object.assign({}, DEF), metric: 'struct', hl: null, hlChart: null, mouse: null, dirty: true, h: 660, view: null, legend: false,
         shownEpoch: null, timer: null, sc: {}, pos: null, play: false, speed: 1, tex: null, texKey: '', anim: 1, animT0: 0, prevTex: null, vcache: {}, lastT: 0 };
     try { const j = JSON.parse(localStorage.getItem('vt_cf3') || '{}'); if (j.layers) Object.assign(S.layers, j.layers); if (j.set) Object.assign(S.set, j.set); if (j.metric) S.metric = j.metric; if (j.h) S.h = Math.max(560, Math.min(1200, j.h)); } catch (e) {}
@@ -38,11 +38,14 @@
         return x => { if (x <= xs[0]) return ys[0]; if (x >= xs[n - 1]) return ys[n - 1]; let i = 0; while (x > xs[i + 1]) i++; const h = xs[i + 1] - xs[i], t = (x - xs[i]) / h, t2 = t * t, t3 = t2 * t;
             return (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1]; }; }
     const mcOf = c => { if (!c.hedge || !c.hedge.prices || c.hedge.prices.length < 3) return null; if (!c._mc) c._mc = mcInterp(c.hedge.prices, c.hedge.cost1pct); return c._mc; };
-    const PARAMS = [['gamma', 'contrast (gamma)', 'num', '0.05'], ['noise', 'noise cutoff (frac of H)', 'num', '0.01'], ['scale', 'scale mode', 'select', ['fixed', 'adaptive', 'absolute']], ['eref', 'fixed reference', 'select', ['max', 'backend']], ['pHigh', 'high percentile (adaptive)', 'num', '0.1'], ['absH', 'absolute H (native units)', 'num', 'any'], ['lock', 'scale lock', 'check'], ['rise', 'rise tau s', 'num', '0.1'], ['decay', 'decay tau s', 'num', '0.5'], ['negWeight', 'negative weight', 'num', '0.05'], ['bands', 'bands (0 = continuous)', 'num', '1'], ['bright', 'brightness', 'num', '0.05'], ['fade', 'past fade (0 = none)', 'num', '0.05'], ['rowPx', 'row px (+1 px gap)', 'num', '1'], ['nowPct', 'now line position', 'num', '0.01'], ['bucket', 'row bucket (0 = auto)', 'num', 'any'], ['npiv', 'pivots drawn', 'num', '1'], ['font', 'tag font px', 'num', '0.5']];
+    const PARAMS = [['gamma', 'contrast (gamma)', 'num', '0.05'], ['noise', 'noise cutoff (frac of H)', 'num', '0.01'], ['scale', 'scale mode', 'select', ['fixed', 'adaptive', 'absolute']], ['eref', 'fixed reference', 'select', ['max', 'backend']], ['pHigh', 'high percentile (adaptive)', 'num', '0.1'], ['absH', 'absolute H (native units)', 'num', 'any'], ['lock', 'scale lock', 'check'], ['rise', 'rise tau s', 'num', '0.1'], ['decay', 'decay tau s', 'num', '0.5'], ['negWeight', 'negative weight', 'num', '0.05'], ['blend', 'epoch blend (smooth = interpolate between model states)', 'select', ['smooth', 'hold']], ['gapMin', 'feed-gap timeout (min, 0 = off)', 'num', '1'], ['backfill', 'before first model state', 'select', ['carry', 'empty']], ['bands', 'bands (0 = continuous)', 'num', '1'], ['bright', 'brightness', 'num', '0.05'], ['fade', 'past fade (0 = none)', 'num', '0.05'], ['rowPx', 'row px (+1 px gap)', 'num', '1'], ['nowPct', 'now line position', 'num', '0.01'], ['bucket', 'row bucket (0 = auto)', 'num', 'any'], ['npiv', 'pivots drawn', 'num', '1'], ['font', 'tag font px', 'num', '0.5']];
     const METRICS = [['struct', 'Structural'], ['gex', 'Net GEX'], ['vanna', 'Vanna'], ['charm', 'Charm'], ['vomma', 'Vomma'], ['vega', 'Vega'], ['delta', 'Delta hedge'], ['ptouch', 'Touch prob'], ['oi', 'Open int.'], ['hedge', 'Hedge $/1%']];
     // ---------------- epochs / history
     const cur = () => { if (!S.hist.length) return S.chart; if (S.pos == null) return S.hist[S.hist.length - 1].c; let b = S.hist[0]; for (const h of S.hist) if (h.t <= S.pos) b = h; return b.c; };
     const nowMin = () => S.pos != null ? S.pos : (S.hist.length ? S.hist[S.hist.length - 1].t : 600);
+    const idxAt = m => { let b = 0; for (let i = 0; i < S.hist.length; i++) if (S.hist[i].t <= m) b = i; return b; };
+    // live-column easing (spec 6.3): after a new model state the displayed values ease prev -> new over ~400 ms (live) / 0.5 replay-minutes; history is frozen
+    const easeK = () => { const H = S.hist; if (H.length < 2) return 1; const i = idxAt(nowMin()); if (i <= 0) return 1; return S.pos != null ? clamp((nowMin() - H[i].t) / 0.5, 0, 1) : clamp((performance.now() - S.animT0) / 400, 0, 1); };
     const epochAt = m => { let b = S.hist[0]; for (const h of S.hist) if (h.t <= m) b = h; return b ? b.c : S.chart; };
     // ---------------- DOM
     function build() { const r = root(); if (!r || r.dataset.built) return; r.dataset.built = '1';
@@ -58,7 +61,7 @@
         r.querySelectorAll('[data-lay]').forEach(c => c.addEventListener('change', () => { S.layers[c.dataset.lay] = c.checked; save(); S.dirty = true; }));
         r.querySelector('#vt-cf-style').addEventListener('click', e => { S.set.style = S.set.style === 'rows' ? 'smooth' : 'rows'; e.target.textContent = S.set.style === 'rows' ? 'Rows' : 'Smooth'; save(); S.texKey = ''; S.dirty = true; });
         r.querySelector('#vt-cf-leg').addEventListener('click', () => { S.legend = !S.legend; r.querySelector('#vt-cf-legend').hidden = !S.legend; });
-        r.querySelector('#vt-cf-reset').addEventListener('click', () => { S.view = null; S.dirty = true; });
+        r.querySelector('#vt-cf-reset').addEventListener('click', () => { S.view = null; S.ve = null; S.dirty = true; });
         PARAMS.forEach(q => r.querySelector('#vt-cf-s-' + q[0]).addEventListener('change', e => { const el = e.target; S.set[q[0]] = q[2] === 'check' ? el.checked : q[2] === 'select' ? el.value : +el.value; if (q[0] === 'scale' || q[0] === 'eref') S.sc = {}; if (q[0] === 'lock' && !el.checked) S.sc = {}; if (q[0] === 'pHigh' || q[0] === 'absH') S.sc = {}; save(); S.texKey = ''; S.dirty = true; }));
         r.querySelector('#vt-cf-defs').addEventListener('click', () => { Object.assign(S.set, DEF); S.sc = {}; save(); r.dataset.built = ''; r.innerHTML = ''; build(); S.texKey = ''; S.dirty = true; hud(); });
         const sl = r.querySelector('#vt-cf-sl'); sl.addEventListener('input', () => { S.pos = +sl.value >= nowLatest() ? null : +sl.value; S.play = false; S.dirty = true; syncRp(); });
@@ -90,12 +93,12 @@
         if (force) { commit(true); return; } if (!S.timer) S.timer = setTimeout(() => { S.timer = null; tryShow(true); }, 250); }
     function commit(stale) { const c = S.chart; S.stale = !!stale; const sh = root() && root().querySelector('#vt-cf-stale'); if (sh) sh.hidden = !stale;
         const newEp = S.shownEpoch !== c.epoch; S.shownEpoch = c.epoch;
-        if (c.ok) { const nm = minOf(c.as_of); if (!S.mock || S.mock.nowMin !== nm || S.mockSpot !== c.axis.spot) { S.mockSpot = c.axis.spot; S.mock = window.CFMock.make(c.axis.spot, nm, c.axis.tick, c.em && c.em.ok ? c.em.up - c.axis.spot : null); } }
-        if (newEp) { S.prevTex = S.tex; S.anim = S.prevTex ? 0 : 1; S.animT0 = performance.now(); } S.texKey = ''; hud(); syncRp(); S.dirty = true; }
+        if (c.ok) { const nm = minOf(c.as_of); const hl = S.hist.length; if (!S.mock || S.mock.nowMin !== nm || S.mockSpot !== c.axis.spot || S.mockN !== hl) { S.mockSpot = c.axis.spot; S.mockN = hl; S.mock = window.CFMock.make(c.axis.spot, nm, c.axis.tick, c.em && c.em.ok ? c.em.up - c.axis.spot : null, S.hist.map(h => ({ t: h.t, spot: h.c.axis.spot }))); } }
+        if (newEp) { S.animT0 = performance.now(); } S.texKey = ''; hud(); syncRp(); S.dirty = true; }
     function ingest(payload) { const c = typeof payload === 'string' ? JSON.parse(payload) : payload; S.chart = c;
         // history: epochs recorded so far in this scope (fixtures may carry earlier model states; live feeds append one per epoch). Never back-filled.
         const add = x => { if (!x.ok) return; const t = minOf(x.as_of); if (!S.hist.some(h => h.c.epoch === x.epoch)) S.hist.push({ t, c: x }); };
-        (c.history || []).forEach(add); add(c); S.hist.sort((a, b) => a.t - b.t); S.vcache = {}; }
+        (c.history || []).forEach(add); add(c); S.hist.sort((a, b) => a.t - b.t); while (S.hist.length > 720) S.hist.shift(); S.vcache = {}; }
     // ---------------- HUD / Read / status (DOM)
     function hud() { const r = root(), c = S.chart; if (!r || !c) return; build(); const H = r.querySelector('#vt-cf-hud'), R = r.querySelector('#vt-cf-read'), ST = r.querySelector('#vt-cf-status'), cw = r.querySelector('.vt-cf-cw'), rp = r.querySelector('.vt-cf-rp');
         if (!c.ok) { H.innerHTML = ''; R.innerHTML = '<div class="vt-lens-empty">' + esc(c.reason || 'unavailable') + '</div>'; ST.innerHTML = ''; cw.hidden = true; rp.hidden = true; return; } cw.hidden = false; rp.hidden = false;
@@ -106,9 +109,12 @@
     function metricBar() { const r = root(), c = S.chart; if (!r || !c || !c.ok) return; const el = r.querySelector('#vt-cf-metrics'), have = new Set(c.field.metrics.filter(m => m.hz === hz()).map(m => m.id)); if (c.hedge) have.add('hedge'); if (!have.has(S.metric)) S.metric = have.has('struct') ? 'struct' : 'gex';
         const html = METRICS.filter(m => have.has(m[0])).map(m => '<button data-m="' + m[0] + '" class="' + (m[0] === S.metric ? 'on' : '') + '" title="' + m[1] + '">' + m[1] + '</button>').join(''); if (el.dataset.k !== html) { el.dataset.k = html; el.innerHTML = html; el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { S.metric = b.dataset.m; save(); S.texKey = ''; metricBar(); S.dirty = true; })); } }
     // ---------------- geometry (one ViewTransform for every layer)
-    function view() { if (S.view) return Object.assign({}, S.view); const c = cur(), sp = c.axis.spot, em = c.em && c.em.ok ? Math.abs(c.em.up - sp) : sp * 0.01;
+    function viewTarget() { const c = cur(), sp = c.axis.spot, em = c.em && c.em.ok ? Math.abs(c.em.up - sp) : sp * 0.01;
         const kd = pivots(c).map(l => Math.abs(l.price - sp)), half = Math.max(0.5 * em, 1.2 * Math.max(0, ...kd), sp * 0.004), pw = Math.max(300, (S.g ? S.g.x1 - S.g.x0 : 1100)), nb = Math.floor(pw / 6), nm = nowMin(), np = S.set.nowPct;
         return { t0: nm - nb * np, t1: nm + nb * (1 - np), p0: sp - half, p1: sp + half }; }
+    // auto-recentre with easing: the vertical window eases (critically damped feel, ~180 ms time constant) toward the target; heat, price line and markers share the one transform
+    function view() { if (S.view) return Object.assign({}, S.view); const t = viewTarget(); if (!S.ve) S.ve = { c: (t.p0 + t.p1) / 2, h: (t.p1 - t.p0) / 2 }; return { t0: t.t0, t1: t.t1, p0: S.ve.c - S.ve.h, p1: S.ve.c + S.ve.h }; }
+    function stepView(dt) { if (S.view || !S.chart || !S.ve || !S.hist.length) return; const t = viewTarget(), tc = (t.p0 + t.p1) / 2, th = (t.p1 - t.p0) / 2, a = 1 - Math.exp(-dt / 0.18), dc = tc - S.ve.c, dh = th - S.ve.h; if (Math.abs(dc) < 1e-6 * tc && Math.abs(dh) < 1e-6 * tc) return; S.ve.c += dc * a; S.ve.h += dh * a; S.dirty = true; }
     function geom(w, h) { const v = view(), AW = 64, x0 = 0, x1 = w - AW, TH = 18, VH = Math.round(Math.min(64, h * 0.1)), CV = 34, y0 = 0, ph = h - TH - VH - CV - 8;
         return { w, h, x0, x1, y0, ph, v, AW, volY: y0 + ph + 3, VH, cvdY: y0 + ph + 5 + VH, CV, axY: h - TH, xOf: t => x0 + (t - v.t0) / (v.t1 - v.t0) * (x1 - x0), yOf: p => y0 + (v.p1 - p) / (v.p1 - v.p0) * ph, pOf: y => v.p1 - (y - y0) / ph * (v.p1 - v.p0), tOf: x => v.t0 + (x - x0) / (x1 - x0) * (v.t1 - v.t0) }; }
     function niceStep(raw) { const e = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9)))), m = raw / e; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * e; }
@@ -138,12 +144,16 @@
         const tau = tg > e.H ? S.set.rise : S.set.decay, nh = e.H + (tg - e.H) * (1 - Math.exp(-dt / Math.max(.05, tau))), rc = Math.abs(nh - e.H) / e.H; if (rc > 0.02) { if (rc > 0.15 && S.tex) { S.prevTex = S.tex; S.anim = 0; S.animT0 = performance.now(); } e.H = nh; S.texKey = ''; S.dirty = true; } }
     function scaleOf(id) { const e = S.sc[id], H = e && e.H > 0 ? e.H : eref(id); return { H, L: S.set.noise * H }; }
     // raw values live per epoch; colours are computed here from the CURRENT scale (never stored), so the whole picture re-colours together
-    function buildTex(g, v) { const R = g.R, T0 = Math.floor(v.t0), cols = Math.max(2, Math.ceil(v.t1) - T0 + 1), id = S.metric, sc = scaleOf(id), nm = nowMin(), cc = cur();
-        const key = [g.top, R, g.bucket, T0, cols, id, hz(), S.set.eref, S.set.gamma, S.set.noise, S.set.bands, S.set.bright, S.hist.length, nm, cc.epoch, sc.H, S.set.style].join('|'); if (S.texKey === key && S.tex) return S.tex;
-        const cache = new Map(), vals = c => { if (!cache.has(c.epoch)) cache.set(c.epoch, rowVals(c, g, id)); return cache.get(c.epoch); };
+    function buildTex(g, v) { const R = g.R, T0 = Math.floor(v.t0), cols = Math.max(2, Math.ceil(v.t1) - T0 + 1), id = S.metric, sc = scaleOf(id), nm = nowMin(), H = S.hist, ic = idxAt(nm), curT = H[ic].t, k = easeK(), kq = Math.round(k * 20);
+        const key = [g.top, R, g.bucket, T0, cols, id, hz(), S.set.eref, S.set.gamma, S.set.noise, S.set.bands, S.set.bright, S.set.negWeight, S.set.blend, S.set.gapMin, S.set.backfill, H.length, nm, H[ic].c.epoch, kq, sc.H, S.set.style].join('|'); if (S.texKey === key && S.tex) return S.tex;
+        const cache = new Map(), vals = c => { if (!cache.has(c.epoch)) cache.set(c.epoch, rowVals(c, g, id)); return cache.get(c.epoch); }, ZERO = new Float32Array(R);
+        const lerp = (a, b, f) => { const o = new Float32Array(R); for (let r = 0; r < R; r++) o[r] = a[r] + (b[r] - a[r]) * f; return o; };
+        let liveV = null; const live = () => liveV || (liveV = ic > 0 && k < 1 ? lerp(vals(H[ic - 1].c), vals(H[ic].c), k) : vals(H[ic].c));
+        const colVals = m => { if (m >= curT) return live(); if (m < H[0].t) return S.set.backfill === 'empty' ? ZERO : vals(H[0].c); const i = idxAt(m), e0 = H[i], e1 = H[i + 1];
+            if (e1 && e1.t <= curT) { if (S.set.gapMin > 0 && e1.t - e0.t > S.set.gapMin && m > e0.t + S.set.gapMin) return ZERO; if (S.set.blend === 'smooth') return lerp(vals(e0.c), vals(e1.c), (m - e0.t) / (e1.t - e0.t)); } return vals(e0.c); };
         const cv = document.createElement('canvas'); cv.width = cols; cv.height = R; const x = cv.getContext('2d'), img = x.createImageData(cols, R);
-        for (let c = 0; c < cols; c++) { const m = T0 + c, vv = vals(m > nm ? cc : epochAt(m)); for (let r = 0; r < R; r++) { const q = colorOf(vv[r], sc.H, sc.L), o = (r * cols + c) * 4; img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = q[3] * 255; } }
-        x.putImageData(img, 0, 0); S.tex = cv; S.texKey = key; S.texInfo = { ref: sc.H, id, cols, T0 }; return cv; }
+        for (let c = 0; c < cols; c++) { const vv = colVals(T0 + c); for (let r = 0; r < R; r++) { const q = colorOf(vv[r], sc.H, sc.L), o = (r * cols + c) * 4; img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = q[3] * 255; } }
+        x.putImageData(img, 0, 0); S.tex = cv; S.texKey = key; S.texInfo = { ref: sc.H, id, cols, T0, k }; return cv; }
     // smooth-gradient style (earlier spec 7.5): one texel per device pixel row, super-Gaussian centred on the exact strike pixel
     function buildField(g, dpr) { const c = cur(), m = entry(c, S.metric) || entry(c, 'gex'); const rows = Math.max(1, Math.floor(g.ph * dpr)), pos = new Float32Array(rows), neg = new Float32Array(rows); if (!m) return { pos, neg, rows, m: null };
         const scale = eref(m.id), ys = m.strikes.map(s => g.yOf(s.price)).sort((a, b) => a - b), df = []; for (let i = 1; i < ys.length; i++) if (ys[i] - ys[i - 1] > 0.5) df.push(ys[i] - ys[i - 1]); df.sort((a, b) => a - b); const spacing = df.length ? df[Math.floor(df.length / 2)] : 30;
@@ -239,14 +249,14 @@
         // time axis: a label every 15 bars
         ctx.font = SM; ctx.fillStyle = '#7f90ab'; ctx.textAlign = 'center'; for (let m = Math.ceil(g.v.t0 / 15) * 15; m < g.v.t1; m += 15) ctx.fillText(hhmm(m), g.xOf(m) + cwid / 2, H - 9); ctx.textAlign = 'left';
         S.dirty = !!(S.pulse); S.pulse = false; if (S.anim < 1) { S.anim = clamp((performance.now() - S.animT0) / 220, 0, 1); S.dirty = true; if (S.anim >= 1) S.prevTex = null; } }
-    function loop(t) { const dt = Math.min(100, t - (S.lastT || t)); S.lastT = t; if (S.play && S.hist.length > 1) { S.pos = (S.pos == null ? S.hist[0].t : S.pos) + dt / 450 * S.speed * 1.0; if (S.pos >= nowLatest()) { S.pos = null; S.play = false; } syncRp(); S.dirty = true; }
+    function loop(t) { const dt = Math.min(100, t - (S.lastT || t)); S.lastT = t; stepView(dt / 1000); if (S.pos == null && S.hist.length > 1 && performance.now() - S.animT0 < 420) S.dirty = true; if (S.play && S.hist.length > 1) { S.pos = (S.pos == null ? S.hist[0].t : S.pos) + dt / 450 * S.speed * 1.0; if (S.pos >= nowLatest()) { S.pos = null; S.play = false; } syncRp(); S.dirty = true; }
         if (S.dirty || S.pulseOn) { try { draw(t); } catch (e) { console.error('cf draw', e); S.dirty = false; } } requestAnimationFrame(loop); }
     // ---------------- test / geometry hooks
-    window.VT_CF = { state: S, draw: () => { S.dirty = true; draw(performance.now()); }, geom: () => S.g, grid: () => S.grid, levelsPx: () => S.g && S.chart ? pivots(cur()).map(l => ({ price: l.price, y: S.g.yOf(l.price), label: l.label, tags: l.tags })) : [], labels: () => S.rlabels || [], leftLabels: () => S.llabels || [], rowVals, eref, rgbFor, colorOf, scaleOf, updateScale, heatLum, LUT, buildField, mcInterp, cur, pivots, nowMin, texInfo: () => S.texInfo };
+    window.VT_CF = { state: S, draw: () => { S.dirty = true; draw(performance.now()); }, geom: () => S.g, grid: () => S.grid, levelsPx: () => S.g && S.chart ? pivots(cur()).map(l => ({ price: l.price, y: S.g.yOf(l.price), label: l.label, tags: l.tags })) : [], labels: () => S.rlabels || [], leftLabels: () => S.llabels || [], rowVals, eref, easeK, stepView, rgbFor, colorOf, scaleOf, updateScale, heatLum, LUT, buildField, mcInterp, cur, pivots, nowMin, texInfo: () => S.texInfo };
     window.addEventListener('DOMContentLoaded', () => { build(); const L = lens(), pl = window.onStrikeLens, pm = window.onMultibook;
         window.onStrikeLens = p => { if (pl) pl(p); S.lensEp = L && L.lens && L.lens.epoch; tryShow(false); }; window.onMultibook = p => { if (pm) pm(p); S.mbEp = L && L.mb && L.mb.epoch; tryShow(false); };
         window.onChartFactors = p => { ingest(p); tryShow(false); };
         if (L) L.listeners.push(() => { S.dirty = true; });
-        if (window.VT_SCOPE) VT_SCOPE.onChange(() => { S.view = null; S.hist = []; S.sc = {}; S.pos = null; S.play = false; S.texKey = ''; S.dirty = true; });
+        if (window.VT_SCOPE) VT_SCOPE.onChange(() => { S.view = null; S.ve = null; S.hist = []; S.sc = {}; S.pos = null; S.play = false; S.texKey = ''; S.dirty = true; });
         requestAnimationFrame(loop); });
 })();

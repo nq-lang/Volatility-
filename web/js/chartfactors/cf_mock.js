@@ -3,11 +3,17 @@
 // closes at the real axis price. Every consumer stamps what it draws "EXAMPLE". Replace with the real order-flow API; no model number reads this.
 (function () {
     function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
-    function make(spot, nowMin, tick, emPts) {
+    // anchors: [{t (minute), spot}] model-epoch prices; the example candle path is bridged through them so candles and levels agree in time
+    function make(spot, nowMin, tick, emPts, anchors) {
         const R = rng(20261021), NB = 200, first = Math.max(0, Math.round(nowMin) - NB + 1), n = Math.round(nowMin) - first + 1;
-        const vol = Math.max(emPts || spot * 0.01, spot * 0.004) * 0.03, raw = []; let p = spot;
-        for (let i = 0; i < n; i++) { const o = p, d = (R() - 0.5) * vol * 1.2, c = o + d - (o - spot) * 0.012; raw.push({ o, c, h: Math.max(o, c) + R() * vol * 0.45, l: Math.min(o, c) - R() * vol * 0.45 }); p = c; }
-        const shift = spot - raw[raw.length - 1].c; let cvd = 0; const cv = [], bars = [];
+        const vol = Math.max(emPts || spot * 0.01, spot * 0.004) * 0.03; let p = spot; const w = [];
+        for (let i = 0; i < n; i++) { p = p + (R() - 0.5) * vol * 1.2 - (p - spot) * 0.012; w.push(p); }
+        const an = (anchors || []).filter(a => a.t >= first && a.t <= first + n - 1).sort((x, y) => x.t - y.t); if (!an.length || an[an.length - 1].t < nowMin) an.push({ t: Math.round(nowMin), spot });
+        const cl = w.slice(); let prevT = null, prevAdj = null;   // piecewise bridge: walk + linear correction so close(t_anchor) == anchor spot
+        an.forEach((a, k) => { const i1 = Math.round(a.t) - first, adj1 = a.spot - w[i1]; if (k === 0) { for (let i = 0; i <= i1; i++) cl[i] = w[i] + adj1; } else { const i0 = Math.round(prevT) - first; for (let i = i0; i <= i1; i++) cl[i] = w[i] + prevAdj + (adj1 - prevAdj) * ((i - i0) / Math.max(1, i1 - i0)); } prevT = a.t; prevAdj = adj1; });
+        const lastI = Math.round(prevT) - first; for (let i = lastI + 1; i < n; i++) cl[i] = w[i] + prevAdj;
+        const raw = cl.map((c, i) => { const o = i ? cl[i - 1] : c - (R() - 0.5) * vol; return { o, c, h: Math.max(o, c) + R() * vol * 0.45, l: Math.min(o, c) - R() * vol * 0.45 }; });
+        const shift = 0; let cvd = 0; const cv = [], bars = [];
         raw.forEach((b, i) => { const o = b.o + shift, c = b.c + shift, v = Math.round(300 + R() * 900 + Math.abs(c - o) / vol * 600), dl = Math.round((c - o) / vol * v * 0.35 + (R() - 0.5) * v * 0.2); cvd += dl; bars.push({ t: first + i, o, h: b.h + shift, l: b.l + shift, c, v, d: dl }); cv.push(cvd); });
         const lo = Math.min(...bars.map(b => b.l)), hi = Math.max(...bars.map(b => b.h));
         const session = { SET: bars[Math.floor(n * 0.45)].o + vol * 4, PDL: lo - vol * 3, ONL: lo - vol * 1.2, wOPEN: bars[0].o - vol * 2 };

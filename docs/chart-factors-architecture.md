@@ -5,3 +5,11 @@
 - **Section move:** Strike Insights / Strike Lens / Hedge Flow DOM moves from the Greeks page into a Chart Factors lower stack; the Greeks page keeps the sidebar and loses the blocks (no duplicates; `strike_lens.js` slot `vt-lens-slot-greeks` retired, not hidden).
 - **Layers:** bars/price → session levels → strike field (additive blend, super-Gaussian horizontal falloff, §7.5) → level lines/chips → markers → forensics → crosshair; heatmap layer renders "unavailable" with no depth feed.
 - **Perf budget plan:** snapshot decode off-thread; field texture re-uploaded only on epoch change; tick path touches price line + crosshair only.
+
+## As built (2026-10-30)
+- **Snapshot:** `src/chartfactors/chart_snapshot.h` emits levels (price, tags, exp, dte, p_touch, outcome/why, pill/src), markers, strike fields (struct, gex, vanna, charm, vomma, vega, delta, ptouch, oi) with `vol_k`, hedge ladder, HUD, read tokens. The epoch id is `fnv(scope key | snapshot as_of)`, so each model state has its own id and lens / multibook / chart still share it.
+- **History:** the client keeps one chart state per epoch (ring buffer of 720), never back-filled from invented data (setting `backfill`: carry first state back, or empty).
+- **Renderer (canvas2D):** raw values per epoch -> colours at render time through a 1024-entry OKLab LUT (`RAMP`), one fixed scale per metric (adaptive / absolute / lock available). Columns are placed by time; between two model states values are interpolated linearly (`blend = smooth`, labelled in the settings panel; `hold` = carry-forward). The live column and the projection ease from the previous state to the new one (~400 ms live, 0.5 replay-minutes in replay). History columns are never animated. Gaps longer than `gapMin` draw empty.
+- **View:** the vertical window eases toward its target (180 ms time constant); heat, price line, markers and flags share one transform.
+- **Verification:** `tests/ui/verify_chart.py` (geometry, colour ramp, epoch gating, parity, dynamics, golden replay checksums in `tests/golden/cf_nq_heat.json`, six-ticker render, redraw benchmark), `tests/ui/make_heatmap_gif.py` (replay GIF).
+- **Still open:** live order-flow feed (per-second columns, real bid/ask), WebGL2 renderer, binary snapshot protocol, rank-blend and rolling/session scale windows.

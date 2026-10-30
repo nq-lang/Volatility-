@@ -48,6 +48,7 @@ Single-file build flags used in development: `g++ -std=c++23 -UNDEBUG -I include
 - One heatmap for all three models; metric selector: Structural (default), Net GEX, Vanna, Charm, Vomma, Vega, Delta hedge, Touch prob, Open int., Hedge $/1%.
 - One non-linear ramp by exposure magnitude: midnight navy -> royal blue -> dark gold -> light yellow -> bright yellow -> red (OKLab LUT; red only for the top exposures). One fixed colour scale per metric, so the same value is always the same colour; only the past is dimmed, the projection right of "now" keeps full intensity.
 - Chips state the expected outcome of an approach (MAGNET / PINNING / REJECTION / AMPLIFIER); right-hand pills name the asset and strike, e.g. `QQQ $516 - NQ $21,678`.
+- Replay GIF: `docs/media/heatmap_replay.gif` (regenerate with `python3 tests/ui/make_heatmap_gif.py`).
 - Details and gaps: `docs/heatmap-spec-audit.md`, `docs/chart-factors-*.md`.
 
 ## Mock data (kept in the repository)

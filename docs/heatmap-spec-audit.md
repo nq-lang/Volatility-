@@ -26,34 +26,34 @@ Where the spec and the owner's later written directives disagree, the owner's di
 | 4.9 | Edge cases | Partial | empty, NaN, H=0 verified; a lone value in fixed mode renders full colour (no mid-colour cap) |
 | 4.10 | Control panel | Match | "Heatmap settings" panel, Defaults button |
 | 5.5 | No fade on history | Deviation | owner directive; `fade = 0` restores |
-| 6.1 | Time-based X placement, rAF loop | Match | columns positioned by minute; sub-pixel scroll while replaying |
+| 6.1 | Time-based X placement, rAF loop | Match | columns positioned by minute; sub-pixel scroll while replaying; values interpolated between model states (labelled setting) |
 | 6.2 | Ingest / sampler / render split | Partial | one column per model epoch, not per second |
-| 6.3 | Live-column value easing | Partial | whole-texture crossfade on epoch change (220 ms) instead of per-row easing |
-| 6.4 | Auto-recenter with easing | Missing | view recomputed from spot/EM; manual pan/zoom and Reset view |
+| 6.3 | Live-column value easing | Match | live column + projection ease previous -> new model state; history frozen |
+| 6.4 | Auto-recenter with easing | Match | 180 ms time constant; one shared transform; manual pan/zoom and Reset view |
 | 6.5 | GPU texture + shader | Deviation | canvas2D CPU bitmap, nearest-neighbour; WebGL2 planned |
 | 7 | Pause / scroll-back, colours identical | Match | replay slider; lock freezes H |
-| 7 | Ring buffer, max decimation, memory pressure | Missing | history is a short array per scope |
+| 7 | Ring buffer, max decimation, memory pressure | Partial | ring buffer (720 states) done; decimation not needed at one value per state |
 | 8.1 | Now line at 82%, dotted | Match | test asserts 0.82 +/- 0.005 |
 | 8.2-8.3 | Step price line, green up / red down, head on now line | Match | source = example bars (order-flow API pending) |
 | 9 | Future zone = live state projected flat, no seam | Match | same texture, same scale |
 | 9 | Red/green dashed markers | Match | bid/ask are example data; drawn >= 8 px apart for legibility |
 | 10 | Rows 9 px + 1 px gap | Partial | auto bucket gives 8-13 px rows; `rowPx` and `bucket` settings |
 | 13 | Crosshair readout, L/H legend, pan/zoom, live button | Match | |
-| 3.6 | Feed-gap handling | Missing | no live feed yet |
+| 3.6 | Feed-gap handling | Partial | gaps longer than the timeout draw empty columns (tested); no real feed yet
 
 ## Acceptance scenarios (section 15)
 | # | Scenario | Result |
 |---|---|---|
 | 1 | Steady level crosses now line, no seam | Pass (visual; same texture and scale either side of the line) |
-| 2/3 | Building / fading streak steps along the ramp | Pass by construction (colour is a pure function of value; colour test) - not exercised with a live series |
+| 2/3 | Building / fading streak steps along the ramp | Pass on the 20-state NQ mock run (values and colours change smoothly; GIF) |
 | 4 | Dissolving level | Not exercised (needs a live feed) |
 | 5 | Outlier raises scale fast, recovers slowly | Pass (`verify_chart`, adaptive mode) |
 | 6/7 | Quiet / heavy period | Not exercised on real data |
-| 8 | Trending price recenter | Not implemented (see 6.4) |
+| 8 | Trending price recenter | Pass (view easing test, replay GIF) |
 | 9 | Zoom-out max aggregation | Not applicable yet (one value per epoch) |
 | 10 | Pause and scroll back | Pass (replay) |
 | 11 | Far-from-price dim | Pass (visual) |
-| 12 | Feed gap | Not implemented |
+| 12 | Feed gap | Pass on mock states (empty columns after the timeout) |
 | 13 | Scale lock | Pass |
 | 14 | Empty / single value | Pass for empty / NaN / H=0; single value not capped |
 | 15 | 60 fps / memory | Not benchmarked |

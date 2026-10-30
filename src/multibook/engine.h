@@ -75,7 +75,7 @@ inline AggregateResult run_scope(const reg::Registry& r, scope::Scope sc, adapte
             double ref = 0; for (size_t i = 0; i < res.hedge->shock.size(); ++i) if (std::fabs(std::fabs(res.hedge->shock[i]) - 1.0) < 1e-9) ref = std::max(ref, std::fabs(res.hedge->anchor_contracts[i]));
             VolIn vi; auto vv = opt.vols.find(fam->anchor); if (vv != opt.vols.end()) vi = vv->second;
             res.session = build_session_view(*opt.track, ids2, F * as->multiplier, ref, vi, res.books[ids2[0]].insight.ses, fam->anchor); } }
-    res.epoch = epoch_of(sc.key()); if (res.lens) res.lens->epoch = res.epoch;
+    { std::string asof = res.books.empty() ? std::string() : res.books.begin()->second.insight.ses.as_of; res.epoch = epoch_of(sc.key() + "|" + asof); } if (res.lens) res.lens->epoch = res.epoch;
     res.scope = sc; return res;
 }
 }

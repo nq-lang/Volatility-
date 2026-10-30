@@ -112,6 +112,46 @@ with sync_playwright() as p:
         # --- performance: steady-state redraw and worst case (texture rebuilt every frame)
         pf = pg.evaluate("""()=>{const S=VT_CF.state;S.view=null;VT_CF.draw();const run=(n,reset)=>{const t0=performance.now();for(let i=0;i<n;i++){if(reset)S.texKey='';VT_CF.draw();}return (performance.now()-t0)/n};return {steady:run(40,false),rebuild:run(15,true)}}""")
         chk(pf["steady"] < 16.0, f"steady redraw {pf['steady']:.1f} ms"); chk(pf["rebuild"] < 50.0, f"worst-case redraw (texture rebuild) {pf['rebuild']:.1f} ms"); print(f"perf {vp}: steady {pf['steady']:.1f} ms, rebuild {pf['rebuild']:.1f} ms")
+        # --- dynamics: distinct model states, blending between them, live easing, view easing, gaps, ring buffer, replay updates levels
+        push(pg, "NQ_family"); pg.click('[data-page="vt-page-cf"]'); pg.wait_for_timeout(300)
+        for h in LP["NQ_family"]["history"]: pg.evaluate("(j)=>window.onChartFactors(j)", json.dumps(h) if not isinstance(h, str) else h)
+        pg.evaluate("(j)=>window.onChartFactors(j)", json.dumps(LP["NQ_family"]["chart"])); pg.wait_for_timeout(200)
+        dy = pg.evaluate("""()=>{const S=VT_CF.state;const H=S.hist;const eps=new Set(H.map(h=>h.c.epoch));const spots=H.map(h=>h.c.axis.spot);
+            S.view={t0:H[0].t-2,t1:H[H.length-1].t+8,p0:spots[0]-500,p1:spots[0]+500};S.pos=null;S.set.blend='smooth';S.texKey='';VT_CF.draw();const g=VT_CF.grid(),id=S.metric;
+            const colour=(blend)=>{S.set.blend=blend;S.texKey='';VT_CF.draw();const cv=S.tex,x=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;const R=cv.height;let mx=0;
+              for(let r=0;r<R;r++)for(let c=1;c<cv.width;c++){const a=(r*cv.width+c)*4,b=a-4;mx=Math.max(mx,Math.abs(x[a]-x[b])+Math.abs(x[a+1]-x[b+1])+Math.abs(x[a+2]-x[b+2]));}return mx};
+            const jumpSmooth=colour('smooth'),jumpHold=colour('hold');S.set.blend='smooth';S.texKey='';
+            // live easing: just after a state arrives (replay) values sit between previous and new state
+            const t1=H[H.length-1].t;S.pos=t1+0.0001;const k0=VT_CF.easeK();S.pos=t1+0.25;const k1=VT_CF.easeK();S.pos=null;
+            // replay: pills at two positions differ (levels update)
+            S.view=null;S.ve=null;S.pos=H[2].t;S.texKey='';VT_CF.draw();const a=VT_CF.leftLabels().map(l=>l.text).join('|');S.pos=H[H.length-3].t;S.texKey='';VT_CF.draw();const b=VT_CF.leftLabels().map(l=>l.text).join('|');S.pos=null;
+            // view easing: move the target, the eased window approaches it monotonically and converges
+            S.ve={c:S.ve?S.ve.c+200:0,h:300};const tgt=(()=>{const c=VT_CF.cur();return c.axis.spot})();const seq=[];for(let i=0;i<60;i++){VT_CF.stepView(0.05);seq.push(Math.abs(S.ve.c-tgt));}
+            // gaps: a 30-minute hole yields empty columns
+            const old=H.map(h=>h.t);const e=H.slice(0,3);S.hist=[{t:old[0],c:H[0].c},{t:old[0]+40,c:H[1].c},{t:old[0]+41,c:H[2].c}];S.set.gapMin=15;S.view={t0:old[0]-1,t1:old[0]+45,p0:spots[0]-500,p1:spots[0]+500};S.pos=null;S.texKey='';VT_CF.draw();
+            const cv=S.tex,xx=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;let gapA=0;const col=Math.floor(old[0]+25)-Math.floor(S.view.t0);for(let r=0;r<cv.height;r++)gapA+=xx[(r*cv.width+col)*4+3];
+            S.hist=H;S.set.gapMin=15;S.view=null;S.ve=null;S.texKey='';
+            return {n:H.length,eps:eps.size,spread:Math.max(...spots)-Math.min(...spots),jumpSmooth,jumpHold,k0,k1,changed:a!==b,mono:seq.every((v,i)=>i==0||v<=seq[i-1]+1e-9),conv:seq[seq.length-1]<seq[0]*0.05,gapA}}""")
+        chk(dy["n"] >= 20 and dy["eps"] == dy["n"], f"history has distinct model states {dy['n']}/{dy['eps']}"); chk(dy["spread"] > 20, f"mock path moves {dy['spread']:.1f} pts")
+        chk(dy["jumpSmooth"] < dy["jumpHold"], f"blend between states is smoother than hold ({dy['jumpSmooth']} < {dy['jumpHold']})"); chk(dy["k0"] < 0.01 and 0.4 < dy["k1"] <= 0.55, f"live easing progress {dy['k0']:.2f} -> {dy['k1']:.2f}")
+        chk(dy["changed"], "replay: levels / exposures differ between positions"); chk(dy["mono"] and dy["conv"], "view recentres with easing (monotone, converges)"); chk(dy["gapA"] == 0, f"feed gap draws empty columns (alpha {dy['gapA']})")
+        # --- ring buffer cap
+        rb = pg.evaluate("""(c)=>{for(let i=0;i<760;i++){const x=JSON.parse(JSON.stringify(c));x.epoch='ring'+i;x.as_of='Tue 20 Oct 10:'+String(10+(i%50)).padStart(2,'0')+' ET';window.onChartFactors(x);}return VT_CF.state.hist.length}""", LP["NQ_family"]["chart"])
+        chk(rb <= 720, f"history ring buffer capped ({rb})")
+        # --- golden replay: texture checksums at fixed positions (set UPDATE_GOLDEN=1 to regenerate)
+        pg.reload(); shots.load(pg); push(pg, "NQ_family"); pg.click('[data-page="vt-page-cf"]'); pg.wait_for_timeout(300)
+        for h in LP["NQ_family"]["history"]: pg.evaluate("(j)=>window.onChartFactors(j)", json.dumps(h) if not isinstance(h, str) else h)
+        pg.evaluate("(j)=>window.onChartFactors(j)", json.dumps(LP["NQ_family"]["chart"])); pg.wait_for_timeout(200)
+        gold = pg.evaluate("""()=>{const S=VT_CF.state,H=S.hist,sp=H[H.length-1].c.axis.spot;const out={};
+            const hash=cv=>{const d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;let h=2166136261;for(let i=0;i<d.length;i++){h^=d[i];h=Math.imul(h,16777619)>>>0;}return h.toString(16)+':'+cv.width+'x'+cv.height};
+            S.set=Object.assign(S.set,{scale:'fixed',eref:'backend',blend:'smooth',backfill:'carry',gapMin:15,gamma:0.7,noise:0.03,bands:0,bright:1,negWeight:1,rowPx:9});S.sc={};
+            for(const [name,pos] of [['start',H[0].t+1],['mid',H[10].t+0.7],['late',H[17].t+0.3],['live',null]]){S.view={t0:H[0].t-4,t1:H[H.length-1].t+8,p0:sp-420,p1:sp+420};S.pos=pos;S.texKey='';S.sc={};for(const m of ['struct','gex','ptouch']){S.metric=m;S.texKey='';S.sc={};VT_CF.draw();out[name+':'+m]=hash(S.tex);}}
+            S.pos=null;S.view=null;S.metric='struct';return out}""")
+        gpath = VT_ROOT + "/tests/golden/cf_nq_heat.json"
+        if _os.environ.get("UPDATE_GOLDEN") or not _os.path.exists(gpath):
+            _os.makedirs(_os.path.dirname(gpath), exist_ok=True); json.dump(gold, open(gpath, "w"), indent=1, sort_keys=True)
+        else:
+            gd = json.load(open(gpath)); bad = [k for k in gd if gd[k] != gold.get(k)]; chk(not bad, f"golden replay mismatch: {bad[:3]} (UPDATE_GOLDEN=1 to accept)")
         # --- other scopes render without errors
         for key in ["ES_multi_SPX", "GC_family", "ES_multi_SPX_degraded"]:
             push(pg, key); pg.click('[data-page="vt-page-cf"]'); pg.wait_for_timeout(350); chk(pg.is_visible("#vt-cf-cv"), f"{key} chart")

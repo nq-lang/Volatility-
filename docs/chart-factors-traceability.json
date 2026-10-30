@@ -876,6 +876,31 @@
    "element": "Bid/ask with sizes (\u00a72.9)",
    "needs": "top of book",
    "status": "GAP"
+  },
+  {
+   "element": "Structural heat rows (all three models)",
+   "needs": "chart.field metrics struct/gex/vanna/charm/vomma/vega/delta/ptouch/oi + hedge ladder",
+   "status": "BUILT: one non-linear navy->blue->gold->yellow->red ramp, fixed scale per metric, epoch blend + live easing"
+  },
+  {
+   "element": "Outcome chips (MAGNET / PINNING / REJECTION / AMPLIFIER)",
+   "needs": "levels[].outcome / why / p_touch (rule-based in chart_snapshot.h)",
+   "status": "BUILT: centred, level with the price row, 19 px spacing"
+  },
+  {
+   "element": "Asset + strike pills (e.g. QQQ $516 - NQ $21,678)",
+   "needs": "levels[].pill / src[] (dominant contributing book)",
+   "status": "BUILT"
+  },
+  {
+   "element": "Now line 82%, future zone, step price line, bid/ask dashed markers",
+   "needs": "bars + epochs (+ top of book)",
+   "status": "BUILT on example bars/book; GAP: real tape/top of book"
+  },
+  {
+   "element": "Heat scale legend, settings panel, replay controls",
+   "needs": "UI state",
+   "status": "BUILT"
   }
  ]
 }
